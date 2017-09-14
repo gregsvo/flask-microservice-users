@@ -25,6 +25,7 @@ def recreate_db():
     db.create_all()
     db.session.commit()
 
+
 @manager.command
 def test():
     """Runs the tests without code coverage."""
@@ -34,12 +35,14 @@ def test():
         return 0
     return 1
 
+
 @manager.command
 def seed_db():
     """Seeds the database"""
     db.session.add(User(username='greg', email='testuser_greg@fanos.io'))
     db.session.add(User(username='joe', email='testuser_joe@fanos.io'))
     db.session.commit()
+
 
 @manager.command
 def cov():
@@ -55,6 +58,7 @@ def cov():
         COV.erase()
         return 0
     return 1
+
 
 if __name__ == '__main__':
     manager.run()
