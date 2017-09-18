@@ -1,11 +1,12 @@
+import datetime
 import json
 
 from project import db
 from project.api.models import User
 from project.tests.base import BaseTestCase
 
-def add_user(username, email):
-    user = User(username=username, email=email)
+def add_user(username, email, created_at=datetime.datetime.utcnow()):
+    user = User(username=username, email=email, created_at=created_at)
     db.session.add(user)
     db.session.commit()
     return user
@@ -118,9 +119,10 @@ class TestUserService(BaseTestCase):
             self.assertIn('fail', data['status'])
 
     def test_all_users(self):
-        """Ensure get all users behaves correctly."""
-        add_user('greg', 'testuser_greg@fanos.io')
-        add_user('joe', 'testuser_joe@fanos.io')
+        """Ensure get all users behaves correctly, and proper order returned."""
+        created = datetime.datetime.utcnow() + datetime.timedelta(-30)
+        add_user('created_first', 'created_first@fanos.io', created)
+        add_user('created_second', 'created_second@fanos.io')
         with self.client:
             response = self.client.get('/users')
             data = json.loads(response.data.decode())
@@ -128,41 +130,41 @@ class TestUserService(BaseTestCase):
             self.assertEqual(len(data['data']['users']), 2)
             self.assertTrue('created_at' in data['data']['users'][0])
             self.assertTrue('created_at' in data['data']['users'][1])
-            self.assertIn('greg', data['data']['users'][0]['username'])
-            self.assertIn('joe', data['data']['users'][1]['username'])
-            self.assertIn('testuser_greg@fanos.io', \
-                data['data']['users'][0]['email'])
-            self.assertIn('testuser_joe@fanos.io', \
-                data['data']['users'][1]['email'])
+            self.assertIn('created_first', data['data']['users'][1]['username'])
+            self.assertIn(
+                'created_first@fanos.io', data['data']['users'][1]['email'])
+            self.assertIn('created_second', data['data']['users'][0]['username'])
+            self.assertIn(
+                'created_second@fanos.io', data['data']['users'][0]['email'])
             self.assertIn('success', data['status'])
 
-    def test_main_no_users(self):
-        """Ensure the main route behaves correctly when no users have been
-        added to the database."""
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'<h1>All Users</h1>', response.data)
-        self.assertIn(b'<p>No users!</p>', response.data)
+    # def test_main_no_users(self):
+    #     """Ensure the main route behaves correctly when no users have been
+    #     added to the database."""
+    #     response = self.client.get('/')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIn(b'<h1>All Users</h1>', response.data)
+    #     self.assertIn(b'<p>No users!</p>', response.data)
 
-    def test_main_with_users(self):
-        """Ensure the main route behaves correctly when users have \
-        been added to the databse."""
-        add_user('michael', 'testuser_michael@fanos.io')
-        add_user('fletcher', 'testuser_fletcher@fanos.io')
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'<h1>All Users</h1>', response.data)
-        self.assertNotIn(b'<p>No users!</p>', response.data)
-        self.assertIn(b'<strong>michael</strong>', response.data)
-        self.assertIn(b'<strong>fletcher</strong>', response.data)
+    # def test_main_with_users(self):
+    #     """Ensure the main route behaves correctly when users have \
+    #     been added to the databse."""
+    #     add_user('michael', 'testuser_michael@fanos.io')
+    #     add_user('fletcher', 'testuser_fletcher@fanos.io')
+    #     response = self.client.get('/')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIn(b'<h1>All Users</h1>', response.data)
+    #     self.assertNotIn(b'<p>No users!</p>', response.data)
+    #     self.assertIn(b'<strong>michael</strong>', response.data)
+    #     self.assertIn(b'<strong>fletcher</strong>', response.data)
 
-    def test_main_add_user(self):
-        """Ensure a new user can be added to the database."""
-        with self.client:
-            response = self.client.post('/',
-                data=dict(username='michael', email='michael@realpython.com'),
-                follow_redirects=True)
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(b'<h1>All Users</h1>', response.data)
-            self.assertNotIn(b'<p>No users!</p>', response.data)
-            self.assertIn(b'<strong>michael</strong>', response.data)
+    # def test_main_add_user(self):
+    #     """Ensure a new user can be added to the database."""
+    #     with self.client:
+    #         response = self.client.post('/',
+    #             data=dict(username='michael', email='michael@realpython.com'),
+    #             follow_redirects=True)
+    #         self.assertEqual(response.status_code, 200)
+    #         self.assertIn(b'<h1>All Users</h1>', response.data)
+    #         self.assertNotIn(b'<p>No users!</p>', response.data)
+    #         self.assertIn(b'<strong>michael</strong>', response.data)
